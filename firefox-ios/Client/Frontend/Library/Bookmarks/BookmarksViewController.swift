@@ -317,6 +317,7 @@ class BookmarksViewController: SiteTableViewController,
         self.tableView.setEditing(true, animated: true)
         self.tableView.dragInteractionEnabled = true
         sendPanelChangeNotification()
+        updateEmptyState()
     }
 
     func disableEditMode() {
@@ -325,6 +326,7 @@ class BookmarksViewController: SiteTableViewController,
         self.tableView.setEditing(false, animated: true)
         self.tableView.dragInteractionEnabled = false
         sendPanelChangeNotification()
+        updateEmptyState()
     }
 
     private func sendPanelChangeNotification() {
@@ -374,13 +376,30 @@ class BookmarksViewController: SiteTableViewController,
         }
     }
 
-    private func updateEmptyState() {
-        a11yEmptyStateScrollView.isHidden = !viewModel.bookmarkNodes.isEmpty
-        if !a11yEmptyStateScrollView.isHidden {
-            let isRoot = viewModel.bookmarkFolderGUID == BookmarkRoots.MobileFolderGUID
-            let isSignedIn = profile.hasAccount()
-            emptyStateView.configure(isRoot: isRoot, isSignedIn: isSignedIn)
+    private func updateEmptyState(animated: Bool = true) {
+        let showEmptyState = viewModel.bookmarkNodes.isEmpty && !tableView.isEditing
+
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: {
+                if showEmptyState {
+                    self.a11yEmptyStateScrollView.isHidden = false
+                    self.a11yEmptyStateScrollView.alpha = 1
+                } else {
+                    self.a11yEmptyStateScrollView.alpha = 0
+                }
+            }) { _ in
+                if !showEmptyState {
+                    self.a11yEmptyStateScrollView.isHidden = true
+                }
+            }
+        } else {
+            self.a11yEmptyStateScrollView.alpha = 1
+            a11yEmptyStateScrollView.isHidden = !showEmptyState
         }
+
+        let isRoot = viewModel.bookmarkFolderGUID == BookmarkRoots.MobileFolderGUID
+        let isSignedIn = profile.hasAccount()
+        emptyStateView.configure(isRoot: isRoot, isSignedIn: isSignedIn)
     }
 
     private func createContextButton() -> UIButton {
@@ -633,6 +652,10 @@ class BookmarksViewController: SiteTableViewController,
                 return
             }
         }
+    }
+
+    func tableView(_ tableView: UITableView, didEndEditingRowAt indexPath: IndexPath?) {
+        updateEmptyState(animated: false)
     }
 }
 
